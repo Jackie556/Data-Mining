@@ -4,6 +4,8 @@
 library(readr)
 library(caret)
 library(ggplot2)
+library(dplyr)
+library(stringr)
 
 
 
@@ -26,11 +28,16 @@ hist(data$fueltype,main = "Fuel Type Of Car",xlab="Fuel Type")
 plot(density(data$horsepower), main="Horsepower Density")
 
 # For categorical variables
-table(data$fuel_type)
-barplot(table(data$body_style), main="Body Style Distribution")
 
 
 
+# Assuming company and car_name columns are present in your data
+
+# Create a column for the first three letters of the car name
+data <- data %>% 
+  mutate(car_company = str_sub(data$CarName, 1, 3))
+
+write.csv(data, "C:/Users/jacki/OneDrive/Desktop/Data Mining thesis/R-Codes/Data-Mining/preprocessed_dataset.csv", row.names = FALSE)
 
 
 
