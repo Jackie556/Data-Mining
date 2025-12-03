@@ -48,7 +48,6 @@ df <- df[, !(names(df) %in% c("car_ID", "symboling","CarName"))]
 
 
 #normality_test(histogram with normal curve)
-num_df<- df[, !(names(df) %in% c("car_ID", "symboling"))]
 
 
 num_df <- df %>%
