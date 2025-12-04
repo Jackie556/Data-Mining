@@ -14,7 +14,8 @@ library(xgboost)
 library(glmnet)
 library(e1071)
 library(Metrics)  
-
+library(rpart)
+library(rpart.plot)
 
 
 #main
@@ -376,6 +377,37 @@ cat("DF (with outliers) Test RMSE=", rmse_df, "\n")
 cat("DF (with outliers) Test MAE =", mae_df,  "\n")
 
 
+# and we already predicted on test_data_df earlier:
+pred_with   <- predict(lm_with, newdata = test_data_df)
+actual_with <- test_data_df$price
+
+plot_lm_with <- data.frame(
+  Actual    = actual_with,
+  Predicted = pred_with
+)
+
+p_lm_with <- ggplot(plot_lm_with, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "blue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "Linear Regression: Actual vs Predicted Price (With Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_lm_with)
+
+ggsave(
+  filename = "LM_actual_vs_predicted_with_outliers.png",
+  plot     = p_lm_with,
+  width    = 7,
+  height   = 5,
+  dpi      = 300
+)
+
+
 #Without_outliers
 
 sapply(dataset_no_outliers[cat_vars], nlevels)
@@ -438,6 +470,34 @@ cat("Test RMSE=", rmse, "\n")
 cat("Test MAE =", mae,  "\n")
 
 
+
+# lm_without fitted on train_data, predictions on test_data:
+
+plot_lm <- data.frame(
+  Actual    = actual,
+  Predicted = pred
+)
+
+p_lm <- ggplot(plot_lm, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "Linear Regression: Actual vs Predicted Price (Without Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_lm)
+
+ggsave(
+  filename = "LM_actual_vs_predicted(Without Outliers).png",
+  plot     = p_lm,
+  width    = 7,
+  height   = 5,
+  dpi      = 300
+)
 
 
 
@@ -986,5 +1046,131 @@ ggsave(
   height   = 5,
   dpi      = 300
 )
+
+#DEcision Tree
+
+
+set.seed(123)
+
+# ----- data without outliers -----
+dat_no <- dataset_no_outliers
+
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+dat_no[cat_vars] <- lapply(dat_no[cat_vars], factor)
+
+n_no  <- nrow(dat_no)
+train_size_no <- floor(0.8 * n_no)
+idx_no <- sample(seq_len(n_no), size = train_size_no)
+
+train_no <- dat_no[idx_no, ]
+test_no  <- dat_no[-idx_no, ]
+
+# model
+dt_no <- rpart(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = train_no,
+  method = "anova",
+  control = rpart.control(cp = 0.01, minsplit = 10)
+)
+
+rpart.plot(dt_no, main = "Decision Tree (No Outliers)")
+
+# predictions & metrics
+pred_no <- predict(dt_no, newdata = test_no)
+actual_no <- test_no$price
+
+ss_total_no <- sum((actual_no - mean(actual_no))^2)
+ss_res_no   <- sum((actual_no - pred_no)^2)
+r2_no   <- 1 - ss_res_no / ss_total_no
+rmse_no <- sqrt(mean((actual_no - pred_no)^2))
+mae_no  <- mean(abs(actual_no - pred_no))
+
+cat("Tree (no outliers) R²  =", r2_no,  "\n")
+cat("Tree (no outliers) RMSE=", rmse_no,"\n")
+cat("Tree (no outliers) MAE =", mae_no, "\n")
+
+# graph: actual vs predicted
+plot_no <- data.frame(Actual = actual_no, Predicted = pred_no)
+
+p_dt_no <- ggplot(plot_no, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(title = "Decision Tree: Actual vs Predicted (No Outliers)",
+       x = "Actual Price", y = "Predicted Price")
+
+print(p_dt_no)
+
+ggsave("DT_actual_vs_predicted_no_outliers.png",
+       p_dt_no, width = 7, height = 5, dpi = 300)
+
+
+
+
+# ----- data with outliers -----
+dat_w <- data   # or df, your full dataset
+
+dat_w[cat_vars] <- lapply(dat_w[cat_vars], factor)
+
+n_w  <- nrow(dat_w)
+train_size_w <- floor(0.8 * n_w)
+idx_w <- sample(seq_len(n_w), size = train_size_w)
+
+train_w <- dat_w[idx_w, ]
+test_w  <- dat_w[-idx_w, ]
+
+dt_w <- rpart(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = train_w,
+  method = "anova",
+  control = rpart.control(cp = 0.01, minsplit = 10)
+)
+
+rpart.plot(dt_w, main = "Decision Tree (With Outliers)")
+
+pred_w <- predict(dt_w, newdata = test_w)
+actual_w <- test_w$price
+
+ss_total_w <- sum((actual_w - mean(actual_w))^2)
+ss_res_w   <- sum((actual_w - pred_w)^2)
+r2_w   <- 1 - ss_res_w / ss_total_w
+rmse_w <- sqrt(mean((actual_w - pred_w)^2))
+mae_w  <- mean(abs(actual_w - pred_w))
+
+cat("Tree (with outliers) R²  =", r2_w,  "\n")
+cat("Tree (with outliers) RMSE=", rmse_w,"\n")
+cat("Tree (with outliers) MAE =", mae_w, "\n")
+
+plot_w <- data.frame(Actual = actual_w, Predicted = pred_w)
+
+p_dt_w <- ggplot(plot_w, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "darkgreen", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(title = "Decision Tree: Actual vs Predicted (With Outliers)",
+       x = "Actual Price", y = "Predicted Price")
+
+print(p_dt_w)
+
+ggsave("DT_actual_vs_predicted_with_outliers.png",
+       p_dt_w, width = 7, height = 5, dpi = 300)
+
+
+
+
+
+
 
 
