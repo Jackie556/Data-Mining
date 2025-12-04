@@ -1,0 +1,178 @@
+#spliting_dataset
+
+set.seed(123)  # For reproducibility
+
+# For the dataset with outliers
+n <- nrow(data)
+train_indices <- sample(seq_len(n), size = floor(0.7 * n))
+train_data <- data[train_indices, ]
+test_data <- data[-train_indices, ]
+
+# For the dataset without outliers
+n_no <- nrow(dataset_no_outliers)
+train_indices_no <- sample(seq_len(n_no), size = floor(0.7 * n_no))
+train_data_no <- dataset_no_outliers[train_indices_no, ]
+test_data_no <- dataset_no_outliers[-train_indices_no, ]
+
+
+
+
+#Model_fitting
+
+
+
+#Linear Regression
+
+
+# Convert predictors to factors (as needed)
+train_data$fueltype       <- as.factor(train_data$fueltype)
+train_data$aspiration     <- as.factor(train_data$aspiration)
+train_data$doornumber     <- as.factor(train_data$doornumber)
+train_data$carbody        <- as.factor(train_data$carbody)
+train_data$drivewheel     <- as.factor(train_data$drivewheel)
+train_data$enginelocation <- as.factor(train_data$enginelocation)
+train_data$enginetype     <- as.factor(train_data$enginetype)
+train_data$fuelsystem     <- as.factor(train_data$fuelsystem)
+# Repeat for other needed categorical predictors
+
+# Fit the linear regression model to the training data
+lm_model <- lm(price ~ fueltype + aspiration + doornumber +
+                 carbody + drivewheel + enginelocation
+               + wheelbase + carlength + carwidth + carheight
+               + curbweight + enginetype + enginesize  + boreratio +
+                 stroke + compressionratio +
+                 horsepower + peakrpm + citympg + highwaympg,
+               data = train_data)
+
+# View model summary
+summary(lm_model)
+
+
+# Convert predictors in test_data to factors as necessary
+test_data$fueltype       <- as.factor(test_data$fueltype)
+test_data$aspiration     <- as.factor(test_data$aspiration)
+test_data$doornumber     <- as.factor(test_data$doornumber)
+test_data$carbody        <- as.factor(test_data$carbody)
+test_data$drivewheel     <- as.factor(test_data$drivewheel)
+test_data$enginelocation <- as.factor(test_data$enginelocation)
+test_data$enginetype     <- as.factor(test_data$enginetype)
+# Add more if needed
+
+# Fit the linear model *on test data*
+lm_model_test <- lm(price ~ fueltype + aspiration + doornumber +
+                      carbody + drivewheel + enginelocation +
+                      wheelbase + carlength + carwidth + carheight + boreratio +
+                      stroke + compressionratio + horsepower +
+                      peakrpm + citympg + highwaympg,
+                    data = test_data)
+
+# View the summary of the model
+summary(lm_model_test)
+
+# Predict prices for the test set (using model from train set)
+lm_pred <- predict(lm_model,data = test_data)
+
+# Preview predictions
+head(lm_pred)
+
+
+
+
+actual <- test_data$price
+rmse <- sqrt(mean((actual - lm_pred)^2))
+mae <- mean(abs(actual - lm_pred))
+ss_total <- sum((actual - mean(actual))^2)
+ss_res <- sum((actual - lm_pred)^2)
+r_squared <- 1 - ss_res/ss_total
+
+cat("Test RMSE=", rmse, "\n")
+cat("Test MAE=", mae, "\n")
+cat("Test R²=", r_squared, "\n")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Without outliers
+cat_vars <- c("fueltype", "aspiration", "doornumber", "carbody", "drivewheel", "enginelocation", "enginetype", "cylindernumber", "fuelsystem")
+sapply(train_data_no[cat_vars], function(x) length(unique(x)))
+
+# Convert categorical predictors in train_data_no to factors (do this for all relevant variables)
+
+train_data_no$aspiration     <- as.factor(train_data_no$aspiration)
+train_data_no$doornumber     <- as.factor(train_data_no$doornumber)
+train_data_no$carbody        <- as.factor(train_data_no$carbody)
+train_data_no$drivewheel     <- as.factor(train_data_no$drivewheel)
+train_data_no$enginetype     <- as.factor(train_data_no$enginetype)
+
+
+# Add others if any
+
+# Fit the model using outlier-free training data
+lm_model_no <-lm(price ~  aspiration + doornumber +
+                    carbody + drivewheel +
+                    wheelbase + carlength + carwidth + carheight +
+                    curbweight + enginetype + enginesize +
+                    boreratio +
+                    stroke + compressionratio + horsepower +
+                    peakrpm + citympg + highwaympg,
+                  data = train_data_no)
+
+# Model diagnostics
+summary(lm_model_no)
+
+#test data
+
+test_data_no$aspiration     <- as.factor(test_data_no$aspiration)
+test_data_no$doornumber     <- as.factor(test_data_no$doornumber)
+test_data_no$carbody        <- as.factor(test_data_no$carbody)
+test_data_no$drivewheel     <- as.factor(test_data_no$drivewheel)
+test_data_no$enginetype     <- as.factor(test_data_no$enginetype)
+
+
+# Remove any other categorical vars with only one present level!
+
+# Fit linear model to the test data (drop one-level factors from formula as needed)
+lm_model_test_no <- lm(price ~ aspiration + doornumber +
+                         carbody + drivewheel +
+                         wheelbase + carlength + carwidth + carheight +
+                         curbweight + enginetype + enginesize +
+                           boreratio +
+                         stroke + compressionratio + horsepower +
+                         peakrpm + citympg + highwaympg,
+                       data = test_data_no)
+
+# View summary
+summary(lm_model_test_no)
+
+predictions <- predict(lm_model_no, newdata = test_data_no)
+head(predictions)
+
+
+actual <- test_data_no$price
+
+# RMSE (Root Mean Square Error)
+rmse <- sqrt(mean((actual - predictions)^2))
+
+# MAE (Mean Absolute Error)
+mae <- mean(abs(actual - predictions))
+
+# R² (Coefficient of Determination)
+ss_total <- sum((actual - mean(actual))^2)
+ss_res <- sum((actual - predictions)^2)
+r_squared <- 1 - ss_res/ss_total
+
+cat("Test RMS=", rmse, "\n")
+cat("Test MAE=", mae, "\n")
+cat("Test R²=", r_squared, "\n")
