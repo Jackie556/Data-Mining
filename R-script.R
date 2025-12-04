@@ -438,3 +438,553 @@ cat("Test RMSE=", rmse, "\n")
 cat("Test MAE =", mae,  "\n")
 
 
+
+
+
+
+# =========================
+# WITH OUTLIERS  (data)
+# =========================
+
+cat_var <- c("aspiration","doornumber","carbody",
+             "drivewheel","enginetype",
+             "cylindernumber","fuelsystem")
+
+# ensure factors
+data[cat_var] <- lapply(data[cat_var], factor)
+
+set.seed(123)
+
+n_df  <- nrow(data)
+train_size_df <- floor(0.8 * n_df)
+train_indices_df <- sample(seq_len(n_df), size = train_size_df)
+
+train_data_df <- data[train_indices_df, ]
+test_data_df  <- data[-train_indices_df, ]
+
+cat("Training Set (80%):", nrow(train_data_df), "rows\n")
+cat("Testing Set  (20%):", nrow(test_data_df), "rows\n")
+
+# same predictors as lm_with
+rf_with <- randomForest(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = train_data_df,
+  ntree = 500,
+  mtry  = floor(sqrt(ncol(train_data_df) - 1)),
+  importance = TRUE
+)
+
+# predictions and metrics
+rf_pred_df <- predict(rf_with, newdata = test_data_df)
+actual_df  <- test_data_df$price
+
+ss_total_df <- sum((actual_df - mean(actual_df))^2)
+ss_res_df   <- sum((actual_df - rf_pred_df)^2)
+r_squared_df <- 1 - ss_res_df / ss_total_df
+rmse_df <- sqrt(mean((actual_df - rf_pred_df)^2))
+mae_df  <- mean(abs(actual_df - rf_pred_df))
+
+cat("RF (with outliers) Test R²  =", r_squared_df, "\n")
+cat("RF (with outliers) Test RMSE=", rmse_df, "\n")
+cat("RF (with outliers) Test MAE =", mae_df,  "\n")
+
+# variable importance
+
+# 1) Extract importance (for regression: IncNodePurity or %IncMSE)
+imp <- importance(rf_with)          # matrix
+imp_df <- as.data.frame(imp)
+imp_df$Variable <- rownames(imp_df)
+rownames(imp_df) <- NULL
+
+# Use %IncMSE if present; otherwise IncNodePurity
+measure <- if("IncNodePurity" %in% names(imp_df)) "IncNodePurity" else "%IncMSE"
+
+# 2) ggplot bar chart, sorted
+p_imp <- imp_df %>%
+  arrange(.data[[measure]]) %>%
+  mutate(Variable = factor(Variable, levels = Variable)) %>%
+  ggplot(aes(x = Variable, y = .data[[measure]])) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Random Forest Variable Importance (with Outliers)",
+    x = "Variable",
+    y = measure
+  ) +
+  theme_minimal(base_size = 11)
+
+print(p_imp)
+
+# Optionally save big
+ggsave("rf_variable_importance.png", p_imp,
+       width = 8, height = 6, dpi = 300)
+
+
+# =========================
+# WITHOUT OUTLIERS (dataset_no_outliers)
+# =========================
+
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+
+dataset_no_outliers[cat_vars] <- lapply(dataset_no_outliers[cat_vars], factor)
+
+set.seed(123)
+
+n_no  <- nrow(dataset_no_outliers)
+train_size_no <- floor(0.8 * n_no)
+train_indices_no <- sample(seq_len(n_no), size = train_size_no)
+
+train_data <- dataset_no_outliers[train_indices_no, ]
+test_data  <- dataset_no_outliers[-train_indices_no, ]
+
+cat("Training Set (80%):", nrow(train_data), "rows\n")
+cat("Testing Set  (20%):", nrow(test_data), "rows\n")
+
+rf_without <- randomForest(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = train_data,
+  ntree = 500,
+  mtry  = floor(sqrt(ncol(train_data) - 1)),
+  importance = TRUE
+)
+
+rf_pred <- predict(rf_without, newdata = test_data)
+actual  <- test_data$price
+
+ss_total <- sum((actual - mean(actual))^2)
+ss_res   <- sum((actual - rf_pred)^2)
+r_squared <- 1 - ss_res / ss_total
+rmse <- sqrt(mean((actual - rf_pred)^2))
+mae  <- mean(abs(actual - rf_pred))
+
+cat("RF (without outliers) Test R²  =", r_squared, "\n")
+cat("RF (without outliers) Test RMSE=", rmse, "\n")
+cat("RF (without outliers) Test MAE =", mae,  "\n")
+
+
+# Extract importance from rf_without
+imp_no <- importance(rf_without)      # matrix
+imp_no_df <- as.data.frame(imp_no)
+imp_no_df$Variable <- rownames(imp_no)
+rownames(imp_no_df) <- NULL
+
+# Choose measure: IncNodePurity (regression default) or %IncMSE if available
+measure_no <- if ("IncNodePurity" %in% names(imp_no_df)) "IncNodePurity" else "%IncMSE"
+
+# Build ggplot variable-importance graph
+p_imp_no <- imp_no_df %>%
+  arrange(.data[[measure_no]]) %>%
+  mutate(Variable = factor(Variable, levels = Variable)) %>%
+  ggplot(aes(x = Variable, y = .data[[measure_no]])) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Random Forest Variable Importance (No Outliers)",
+    x = "Variable",
+    y = measure_no
+  ) +
+  theme_minimal(base_size = 11)
+
+print(p_imp_no)
+
+# Save as big high‑resolution image (optional)
+ggsave(
+  filename = "rf_without_var_importance.png",
+  plot     = p_imp_no,
+  width    = 8,
+  height   = 6,
+  dpi      = 300
+)
+
+
+
+
+
+# =========================
+# SVR Regression (SVR) WITHOUT outliers
+# =========================
+
+set.seed(123)
+
+# reuse your split: dataset_no_outliers -> train_data, test_data
+n_no  <- nrow(dataset_no_outliers)
+train_size_no <- floor(0.8 * n_no)
+train_indices_no <- sample(seq_len(n_no), size = train_size_no)
+
+train_data <- dataset_no_outliers[train_indices_no, ]
+test_data  <- dataset_no_outliers[-train_indices_no, ]
+
+# make sure categorical vars are factors
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+train_data[cat_vars] <- lapply(train_data[cat_vars], factor)
+test_data[cat_vars]  <- lapply(test_data[cat_vars],  factor)
+
+# SVR regression model (radial kernel)
+svr_model <- svm(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data   = train_data,
+  type   = "eps-regression",
+  kernel = "radial",
+  cost   = 10,
+  gamma  = 0.01
+)
+
+print(svr_model)
+
+# Predictions
+svr_pred <- predict(svr_model, newdata = test_data)
+actual   <- test_data$price
+
+# Metrics
+ss_total <- sum((actual - mean(actual))^2)
+ss_res   <- sum((actual - svr_pred)^2)
+r_squared <- 1 - ss_res / ss_total
+rmse <- sqrt(mean((actual - svr_pred)^2))
+mae  <- mean(abs(actual - svr_pred))
+
+cat("SVR (no outliers) Test R²  =", r_squared, "\n")
+cat("SVR (no outliers) Test RMSE=", rmse, "\n")
+cat("SVR (no outliers) Test MAE =", mae,  "\n")
+
+# =========================
+# Nice graph: Actual vs Predicted
+# =========================
+
+plot_df <- data.frame(
+  Actual    = actual,
+  Predicted = svm_pred
+)
+
+p_svr <- ggplot(plot_df, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "steelblue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "SVR: Actual vs Predicted Price (No Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_svr)
+
+ggsave(
+  filename = "SVR_actual_vs_predicted_no_outliers.png",
+  plot     = p_svr,
+  width    = 7,
+  height   = 5,
+  dpi      = 300
+)
+
+
+
+set.seed(123)
+
+# ================
+# WITH outliers
+# ================
+
+# use your full dataset with outliers; adjust name if needed
+df_with <- data    # or df, whichever you used above
+
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+
+df_with[cat_vars] <- lapply(df_with[cat_vars], factor)
+
+# 80/20 split
+n_w  <- nrow(df_with)
+train_size_w <- floor(0.8 * n_w)
+train_idx_w  <- sample(seq_len(n_w), size = train_size_w)
+
+train_data_w <- df_with[train_idx_w, ]
+test_data_w  <- df_with[-train_idx_w, ]
+
+cat("Training Set (80%):", nrow(train_data_w), "rows\n")
+cat("Testing Set  (20%):", nrow(test_data_w), "rows\n")
+
+# ensure factors in both sets
+train_data_w[cat_vars] <- lapply(train_data_w[cat_vars], factor)
+test_data_w[cat_vars]  <- lapply(test_data_w[cat_vars],  factor)
+
+# SVM regression model (radial kernel)
+svr_with <- svm(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data   = train_data_w,
+  type   = "eps-regression",
+  kernel = "radial",
+  cost   = 10,
+  gamma  = 0.01
+)
+
+print(svr_with)
+
+# Predictions
+svr_pred_w <- predict(svr_with, newdata = test_data_w)
+actual_w   <- test_data_w$price
+
+# Metrics
+ss_total_w <- sum((actual_w - mean(actual_w))^2)
+ss_res_w   <- sum((actual_w - svr_pred_w)^2)
+r_squared_w <- 1 - ss_res_w / ss_total_w
+rmse_w <- sqrt(mean((actual_w - svr_pred_w)^2))
+mae_w  <- mean(abs(actual_w - svr_pred_w))
+
+cat("SVR (with outliers) Test R²  =", r_squared_w, "\n")
+cat("SVR (with outliers) Test RMSE=", rmse_w, "\n")
+cat("SVR (with outliers) Test MAE =", mae_w,  "\n")
+
+# ================
+# Graph: Actual vs Predicted
+# ================
+
+plot_w <- data.frame(
+  Actual    = actual_w,
+  Predicted = svr_pred_w
+)
+
+p_svr_w <- ggplot(plot_w, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "darkgreen", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "SVR: Actual vs Predicted Price (With Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_svr_w)
+
+ggsave(
+  filename = "SVR_actual_vs_predicted_with_outliers.png",
+  plot     = p_svr_w,
+  width    = 7,
+  height   = 5,
+  dpi      = 300
+)
+
+
+#Lasso Regression
+
+set.seed(123)
+
+# -----------------------
+# 1. Prepare data (no outliers)
+# -----------------------
+dat <- dataset_no_outliers
+
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+
+dat[cat_vars] <- lapply(dat[cat_vars], factor)
+
+# model matrix (one‑hot encoding for factors)
+X <- model.matrix(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = dat
+)[, -1]   # remove intercept column
+
+y <- dat$price
+
+# train/test split indices
+n  <- nrow(dat)
+train_size <- floor(0.8 * n)
+train_idx  <- sample(seq_len(n), size = train_size)
+
+X_train <- X[train_idx, ]
+y_train <- y[train_idx]
+X_test  <- X[-train_idx, ]
+y_test  <- y[-train_idx]
+
+# -----------------------
+# 2. Fit LASSO (alpha = 1) with CV
+# -----------------------
+set.seed(123)
+cv_lasso <- cv.glmnet(
+  X_train, y_train,
+  alpha = 1,                 # Lasso
+  family = "gaussian"
+)
+
+# best lambda
+lambda_best <- cv_lasso$lambda.min
+lambda_best
+
+# final Lasso model
+lasso_model <- glmnet(
+  X_train, y_train,
+  alpha = 1,
+  lambda = lambda_best,
+  family = "gaussian"
+)
+
+# -----------------------
+# 3. Predict & metrics
+# -----------------------
+lasso_pred <- predict(lasso_model, newx = X_test, s = lambda_best)[, 1]
+
+ss_total <- sum((y_test - mean(y_test))^2)
+ss_res   <- sum((y_test - lasso_pred)^2)
+r_squared <- 1 - ss_res / ss_total
+rmse <- sqrt(mean((y_test - lasso_pred)^2))
+mae  <- mean(abs(y_test - lasso_pred))
+
+cat("Lasso (no outliers) Test R²  =", r_squared, "\n")
+cat("Lasso (no outliers) Test RMSE=", rmse, "\n")
+cat("Lasso (no outliers) Test MAE =", mae,  "\n")
+
+# -----------------------
+# 4. Graph: Actual vs Predicted
+# -----------------------
+plot_lasso <- data.frame(
+  Actual    = y_test,
+  Predicted = lasso_pred
+)
+
+p_lasso <- ggplot(plot_lasso, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "purple", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "Lasso Regression: Actual vs Predicted Price (No Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_lasso)
+
+ggsave(
+  filename = "Lasso_actual_vs_predicted_no_outliers.png",
+  plot     = p_lasso,
+  width    = 7,
+  height   = 5,
+  dpi      = 300
+)
+
+
+
+set.seed(123)
+
+# -----------------------
+# 1. Prepare data (WITH outliers)
+# -----------------------
+dat_w <- data    # or df, whichever is your full dataset
+
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+
+dat_w[cat_vars] <- lapply(dat_w[cat_vars], factor)
+
+# model matrix (one‑hot encoding for factors)
+X_w <- model.matrix(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = dat_w
+)[, -1]   # remove intercept column
+
+y_w <- dat_w$price
+
+# train/test split (80/20)
+n_w  <- nrow(dat_w)
+train_size_w <- floor(0.8 * n_w)
+train_idx_w  <- sample(seq_len(n_w), size = train_size_w)
+
+Xw_train <- X_w[train_idx_w, ]
+yw_train <- y_w[train_idx_w]
+Xw_test  <- X_w[-train_idx_w, ]
+yw_test  <- y_w[-train_idx_w]
+
+# -----------------------
+# 2. Fit LASSO (alpha = 1) with CV
+# -----------------------
+set.seed(123)
+cv_lasso_w <- cv.glmnet(
+  Xw_train, yw_train,
+  alpha = 1,
+  family = "gaussian"
+)
+
+lambda_best_w <- cv_lasso_w$lambda.min
+
+lasso_with <- glmnet(
+  Xw_train, yw_train,
+  alpha = 1,
+  lambda = lambda_best_w,
+  family = "gaussian"
+)
+
+# -----------------------
+# 3. Predict & metrics
+# -----------------------
+lasso_pred_w <- predict(lasso_with, newx = Xw_test, s = lambda_best_w)[, 1]
+
+ss_total_w <- sum((yw_test - mean(yw_test))^2)
+ss_res_w   <- sum((yw_test - lasso_pred_w)^2)
+r_squared_w <- 1 - ss_res_w / ss_total_w
+rmse_w <- sqrt(mean((yw_test - lasso_pred_w)^2))
+mae_w  <- mean(abs(yw_test - lasso_pred_w))
+
+cat("Lasso (with outliers) Test R²  =", r_squared_w, "\n")
+cat("Lasso (with outliers) Test RMSE=", rmse_w, "\n")
+cat("Lasso (with outliers) Test MAE =", mae_w,  "\n")
+
+# -----------------------
+# 4. Graph: Actual vs Predicted
+# -----------------------
+plot_lasso_w <- data.frame(
+  Actual    = yw_test,
+  Predicted = lasso_pred_w
+)
+
+p_lasso_w <- ggplot(plot_lasso_w, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "blue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "Lasso Regression: Actual vs Predicted Price (With Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_lasso_w)
+
+ggsave(
+  filename = "Lasso_actual_vs_predicted_with_outliers.png",
+  plot     = p_lasso_w,
+  width    = 7,
+  height   = 5,
+  dpi      = 300
+)
+
+
