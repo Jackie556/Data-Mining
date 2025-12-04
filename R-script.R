@@ -16,6 +16,11 @@ library(e1071)
 library(Metrics)  
 library(rpart)
 library(rpart.plot)
+library(gbm)
+
+
+
+
 
 
 #main
@@ -500,7 +505,7 @@ ggsave(
 )
 
 
-
+#Random Forest
 
 # =========================
 # WITH OUTLIERS  (data)
@@ -543,13 +548,13 @@ actual_df  <- test_data_df$price
 
 ss_total_df <- sum((actual_df - mean(actual_df))^2)
 ss_res_df   <- sum((actual_df - rf_pred_df)^2)
-r_squared_df <- 1 - ss_res_df / ss_total_df
-rmse_df <- sqrt(mean((actual_df - rf_pred_df)^2))
-mae_df  <- mean(abs(actual_df - rf_pred_df))
+r_squared_w <- 1 - ss_res_df / ss_total_df
+rmse_w <- sqrt(mean((actual_df - rf_pred_df)^2))
+mae_w  <- mean(abs(actual_df - rf_pred_df))
 
-cat("RF (with outliers) Test R²  =", r_squared_df, "\n")
-cat("RF (with outliers) Test RMSE=", rmse_df, "\n")
-cat("RF (with outliers) Test MAE =", mae_df,  "\n")
+cat("RF (with outliers) Test R²  =", r_squared_w, "\n")
+cat("RF (with outliers) Test RMSE=", rmse_w, "\n")
+cat("RF (with outliers) Test MAE =", mae_w,  "\n")
 
 # variable importance
 
@@ -622,7 +627,7 @@ actual  <- test_data$price
 
 ss_total <- sum((actual - mean(actual))^2)
 ss_res   <- sum((actual - rf_pred)^2)
-r_squared <- 1 - ss_res / ss_total
+r_squared_no <- 1 - ss_res / ss_total
 rmse <- sqrt(mean((actual - rf_pred)^2))
 mae  <- mean(abs(actual - rf_pred))
 
@@ -693,8 +698,7 @@ test_data[cat_vars]  <- lapply(test_data[cat_vars],  factor)
 # SVR regression model (radial kernel)
 svr_model <- svm(
   price ~ aspiration + doornumber + carbody +
-    drivewheel + enginetype +
-    cylindernumber + fuelsystem + enginesize +
+    drivewheel + enginetype + enginesize +
     curbweight + horsepower +
     carlength + carwidth + wheelbase + citympg,
   data   = train_data,
@@ -713,13 +717,13 @@ actual   <- test_data$price
 # Metrics
 ss_total <- sum((actual - mean(actual))^2)
 ss_res   <- sum((actual - svr_pred)^2)
-r_squared <- 1 - ss_res / ss_total
-rmse <- sqrt(mean((actual - svr_pred)^2))
-mae  <- mean(abs(actual - svr_pred))
+r_squared_no_svr <- 1 - ss_res / ss_total
+rmse_no_svr<- sqrt(mean((actual - svr_pred)^2))
+mae_no_svr  <- mean(abs(actual - svr_pred))
 
-cat("SVR (no outliers) Test R²  =", r_squared, "\n")
-cat("SVR (no outliers) Test RMSE=", rmse, "\n")
-cat("SVR (no outliers) Test MAE =", mae,  "\n")
+cat("SVR (no outliers) Test R²  =", r_squared_no_svr, "\n")
+cat("SVR (no outliers) Test RMSE=", rmse_no_svr, "\n")
+cat("SVR (no outliers) Test MAE =", mae_no_svr,  "\n")
 
 # =========================
 # Nice graph: Actual vs Predicted
@@ -785,8 +789,7 @@ test_data_w[cat_vars]  <- lapply(test_data_w[cat_vars],  factor)
 # SVM regression model (radial kernel)
 svr_with <- svm(
   price ~ aspiration + doornumber + carbody +
-    drivewheel + enginetype +
-    cylindernumber + fuelsystem + enginesize +
+    drivewheel + enginetype + enginesize +
     curbweight + horsepower +
     carlength + carwidth + wheelbase + citympg,
   data   = train_data_w,
@@ -805,13 +808,13 @@ actual_w   <- test_data_w$price
 # Metrics
 ss_total_w <- sum((actual_w - mean(actual_w))^2)
 ss_res_w   <- sum((actual_w - svr_pred_w)^2)
-r_squared_w <- 1 - ss_res_w / ss_total_w
-rmse_w <- sqrt(mean((actual_w - svr_pred_w)^2))
-mae_w  <- mean(abs(actual_w - svr_pred_w))
+r_squared_w_svr <- 1 - ss_res_w / ss_total_w
+rmse_w_svr <- sqrt(mean((actual_w - svr_pred_w)^2))
+mae_w_svr  <- mean(abs(actual_w - svr_pred_w))
 
-cat("SVR (with outliers) Test R²  =", r_squared_w, "\n")
-cat("SVR (with outliers) Test RMSE=", rmse_w, "\n")
-cat("SVR (with outliers) Test MAE =", mae_w,  "\n")
+cat("SVR (with outliers) Test R²  =", r_squared_w_svr,"\n")
+cat("SVR (with outliers) Test RMSE=", rmse_w_svr,"\n")
+cat("SVR (with outliers) Test MAE =", mae_w_svr,"\n")
 
 # ================
 # Graph: Actual vs Predicted
@@ -910,13 +913,13 @@ lasso_pred <- predict(lasso_model, newx = X_test, s = lambda_best)[, 1]
 
 ss_total <- sum((y_test - mean(y_test))^2)
 ss_res   <- sum((y_test - lasso_pred)^2)
-r_squared <- 1 - ss_res / ss_total
-rmse <- sqrt(mean((y_test - lasso_pred)^2))
-mae  <- mean(abs(y_test - lasso_pred))
+r_squared_no_lasso <- 1 - ss_res / ss_total
+rmse_no_lasso <- sqrt(mean((y_test - lasso_pred)^2))
+mae_no_lasso  <- mean(abs(y_test - lasso_pred))
 
-cat("Lasso (no outliers) Test R²  =", r_squared, "\n")
-cat("Lasso (no outliers) Test RMSE=", rmse, "\n")
-cat("Lasso (no outliers) Test MAE =", mae,  "\n")
+cat("Lasso (no outliers) Test R²  =", r_squared_no_lasso, "\n")
+cat("Lasso (no outliers) Test RMSE=", rmse_no_lasso, "\n")
+cat("Lasso (no outliers) Test MAE =", mae_no_lasso,  "\n")
 
 # -----------------------
 # 4. Graph: Actual vs Predicted
@@ -1010,13 +1013,13 @@ lasso_pred_w <- predict(lasso_with, newx = Xw_test, s = lambda_best_w)[, 1]
 
 ss_total_w <- sum((yw_test - mean(yw_test))^2)
 ss_res_w   <- sum((yw_test - lasso_pred_w)^2)
-r_squared_w <- 1 - ss_res_w / ss_total_w
-rmse_w <- sqrt(mean((yw_test - lasso_pred_w)^2))
-mae_w  <- mean(abs(yw_test - lasso_pred_w))
+r_squared_w_lasso <- 1 - ss_res_w / ss_total_w
+rmse_w_lasso <- sqrt(mean((yw_test - lasso_pred_w)^2))
+mae_w_lasso  <- mean(abs(yw_test - lasso_pred_w))
 
-cat("Lasso (with outliers) Test R²  =", r_squared_w, "\n")
-cat("Lasso (with outliers) Test RMSE=", rmse_w, "\n")
-cat("Lasso (with outliers) Test MAE =", mae_w,  "\n")
+cat("Lasso (with outliers) Test R²  =", r_squared_w_lasso, "\n")
+cat("Lasso (with outliers) Test RMSE =", rmse_w_lasso, "\n")
+cat("Lasso (with outliers) Test MAE =", mae_w_lasso,  "\n")
 
 # -----------------------
 # 4. Graph: Actual vs Predicted
@@ -1047,7 +1050,166 @@ ggsave(
   dpi      = 300
 )
 
-#DEcision Tree
+
+#Ridge Regression
+#without outliers
+set.seed(123)
+
+dat_no <- dataset_no_outliers
+
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+dat_no[cat_vars] <- lapply(dat_no[cat_vars], factor)
+
+X_no <- model.matrix(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = dat_no
+)[, -1]
+
+y_no <- dat_no$price
+
+n_no  <- nrow(dat_no)
+train_size_no <- floor(0.8 * n_no)
+idx_no <- sample(seq_len(n_no), size = train_size_no)
+
+Xno_train <- X_no[idx_no, ]
+yno_train <- y_no[idx_no]
+Xno_test  <- X_no[-idx_no, ]
+yno_test  <- y_no[-idx_no]
+
+set.seed(123)
+cv_ridge_no <- cv.glmnet(
+  Xno_train, yno_train,
+  alpha = 0, family = "gaussian"
+)
+
+lambda_no <- cv_ridge_no$lambda.min
+
+ridge_no <- glmnet(
+  Xno_train, yno_train,
+  alpha = 0, lambda = lambda_no,
+  family = "gaussian"
+)
+
+ridge_pred_no <- predict(ridge_no, newx = Xno_test, s = lambda_no)[, 1]
+
+ss_total_no <- sum((yno_test - mean(yno_test))^2)
+ss_res_no   <- sum((yno_test - ridge_pred_no)^2)
+r2_no_ridge   <- 1 - ss_res_no / ss_total_no
+rmse_no_ridge <- sqrt(mean((yno_test - ridge_pred_no)^2))
+mae_no_ridge  <- mean(abs(yno_test - ridge_pred_no))
+
+cat("Ridge (no outliers) Test R²  =", r2_no_ridge,  "\n")
+cat("Ridge (no outliers) Test RMSE=", rmse_no_ridge,"\n")
+cat("Ridge (no outliers) Test MAE =", mae_no_ridge, "\n")
+
+plot_ridge_no <- data.frame(
+  Actual    = yno_test,
+  Predicted = ridge_pred_no
+)
+
+p_ridge_no <- ggplot(plot_ridge_no, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "navy", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "Ridge Regression: Actual vs Predicted (No Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_ridge_no)
+
+ggsave(
+  "Ridge_actual_vs_predicted_no_outliers.png",
+  p_ridge_no, width = 7, height = 5, dpi = 300
+)
+
+
+
+set.seed(123)
+
+dat_w <- data   # or df, your full dataset with outliers
+
+dat_w[cat_vars] <- lapply(dat_w[cat_vars], factor)
+
+X_w <- model.matrix(
+  price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = dat_w
+)[, -1]
+
+y_w <- dat_w$price
+
+n_w  <- nrow(dat_w)
+train_size_w <- floor(0.8 * n_w)
+idx_w <- sample(seq_len(n_w), size = train_size_w)
+
+Xw_train <- X_w[idx_w, ]
+yw_train <- y_w[idx_w]
+Xw_test  <- X_w[-idx_w, ]
+yw_test  <- y_w[-idx_w]
+
+set.seed(123)
+cv_ridge_w <- cv.glmnet(
+  Xw_train, yw_train,
+  alpha = 0, family = "gaussian"
+)
+
+lambda_w <- cv_ridge_w$lambda.min
+
+ridge_w <- glmnet(
+  Xw_train, yw_train,
+  alpha = 0, lambda = lambda_w,
+  family = "gaussian"
+)
+
+ridge_pred_w <- predict(ridge_w, newx = Xw_test, s = lambda_w)[, 1]
+
+ss_total_w <- sum((yw_test - mean(yw_test))^2)
+ss_res_w   <- sum((yw_test - ridge_pred_w)^2)
+r2_w_ridge   <- 1 - ss_res_w / ss_total_w
+rmse_w_ridge <- sqrt(mean((yw_test - ridge_pred_w)^2))
+mae_w_ridge  <- mean(abs(yw_test - ridge_pred_w))
+
+cat("Ridge (with outliers) Test R²  =", r2_w_ridge,  "\n")
+cat("Ridge (with outliers) Test RMSE=", rmse_w_ridge,"\n")
+cat("Ridge (with outliers) Test MAE =", mae_w_ridge, "\n")
+
+plot_ridge_w <- data.frame(
+  Actual    = yw_test,
+  Predicted = ridge_pred_w
+)
+
+p_ridge_w <- ggplot(plot_ridge_w, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "blue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "black", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "Ridge Regression: Actual vs Predicted (With Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_ridge_w)
+
+ggsave(
+  "Ridge_actual_vs_predicted_with_outliers.png",
+  p_ridge_w, width = 7, height = 5, dpi = 300
+)
+
+
+#Decision Tree
 
 
 set.seed(123)
@@ -1087,13 +1249,13 @@ actual_no <- test_no$price
 
 ss_total_no <- sum((actual_no - mean(actual_no))^2)
 ss_res_no   <- sum((actual_no - pred_no)^2)
-r2_no   <- 1 - ss_res_no / ss_total_no
-rmse_no <- sqrt(mean((actual_no - pred_no)^2))
-mae_no  <- mean(abs(actual_no - pred_no))
+r2_no_d   <- 1 - ss_res_no / ss_total_no
+rmse_no_d <- sqrt(mean((actual_no - pred_no)^2))
+mae_no_d  <- mean(abs(actual_no - pred_no))
 
-cat("Tree (no outliers) R²  =", r2_no,  "\n")
-cat("Tree (no outliers) RMSE=", rmse_no,"\n")
-cat("Tree (no outliers) MAE =", mae_no, "\n")
+cat("Tree (no outliers) R²  =", r2_no_d,  "\n")
+cat("Tree (no outliers) RMSE=", rmse_no_d,"\n")
+cat("Tree (no outliers) MAE =", mae_no_d, "\n")
 
 # graph: actual vs predicted
 plot_no <- data.frame(Actual = actual_no, Predicted = pred_no)
@@ -1113,6 +1275,7 @@ ggsave("DT_actual_vs_predicted_no_outliers.png",
 
 
 
+set.seed(123)
 
 # ----- data with outliers -----
 dat_w <- data   # or df, your full dataset
@@ -1144,13 +1307,13 @@ actual_w <- test_w$price
 
 ss_total_w <- sum((actual_w - mean(actual_w))^2)
 ss_res_w   <- sum((actual_w - pred_w)^2)
-r2_w   <- 1 - ss_res_w / ss_total_w
-rmse_w <- sqrt(mean((actual_w - pred_w)^2))
-mae_w  <- mean(abs(actual_w - pred_w))
+r2_w_d   <- 1 - ss_res_w / ss_total_w
+rmse_w_d <- sqrt(mean((actual_w - pred_w)^2))
+mae_w_d <- mean(abs(actual_w - pred_w))
 
-cat("Tree (with outliers) R²  =", r2_w,  "\n")
-cat("Tree (with outliers) RMSE=", rmse_w,"\n")
-cat("Tree (with outliers) MAE =", mae_w, "\n")
+cat("Tree (with outliers) R²  =", r2_w_d,  "\n")
+cat("Tree (with outliers) RMSE=", rmse_w_d,"\n")
+cat("Tree (with outliers) MAE =", mae_w_d, "\n")
 
 plot_w <- data.frame(Actual = actual_w, Predicted = pred_w)
 
@@ -1169,7 +1332,442 @@ ggsave("DT_actual_vs_predicted_with_outliers.png",
 
 
 
+#Gradient Boost 
 
+
+# ---------------------------------
+# 1. WITHOUT OUTLIERS
+# ---------------------------------
+set.seed(123)
+
+dat_no <- dataset_no_outliers
+
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+dat_no[cat_vars] <- lapply(dat_no[cat_vars], factor)
+
+n_no  <- nrow(dat_no)
+train_size_no <- floor(0.8 * n_no)
+idx_no <- sample(seq_len(n_no), size = train_size_no)
+
+train_no <- dat_no[idx_no, ]
+test_no  <- dat_no[-idx_no, ]
+
+gbm_no <- gbm(
+  formula = price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = train_no,
+  distribution = "gaussian",
+  n.trees = 1000,
+  interaction.depth = 3,
+  shrinkage = 0.01,
+  n.minobsinnode = 10,
+  cv.folds = 5,
+  verbose = FALSE
+)
+
+best_iter_no <- gbm.perf(gbm_no, method = "cv", plot.it = FALSE)
+
+gbm_pred_no <- predict(gbm_no, newdata = test_no,
+                       n.trees = best_iter_no)
+actual_no <- test_no$price
+
+ss_total_no <- sum((actual_no - mean(actual_no))^2)
+ss_res_no   <- sum((actual_no - gbm_pred_no)^2)
+r2_no_gbm   <- 1 - ss_res_no / ss_total_no
+rmse_no_gbm <- sqrt(mean((actual_no - gbm_pred_no)^2))
+mae_no_gbm  <- mean(abs(actual_no - gbm_pred_no))
+
+cat("GBM (no outliers) Test R²  =", r2_no_gbm,  "\n")
+cat("GBM (no outliers) Test RMSE=", rmse_no_gbm,"\n")
+cat("GBM (no outliers) Test MAE =", mae_no_gbm, "\n")
+
+plot_gbm_no <- data.frame(
+  Actual    = actual_no,
+  Predicted = gbm_pred_no
+)
+
+p_gbm_no <- ggplot(plot_gbm_no, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "darkblue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "GBM: Actual vs Predicted Price (No Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_gbm_no)
+
+ggsave("GBM_actual_vs_predicted_no_outliers.png",
+       p_gbm_no, width = 7, height = 5, dpi = 300)
+
+
+# ---------------------------------
+# 2. WITH OUTLIERS
+# ---------------------------------
+set.seed(123)
+
+dat_w <- data   # or df, your full dataset
+
+dat_w[cat_vars] <- lapply(dat_w[cat_vars], factor)
+
+n_w  <- nrow(dat_w)
+train_size_w <- floor(0.8 * n_w)
+idx_w <- sample(seq_len(n_w), size = train_size_w)
+
+train_w <- dat_w[idx_w, ]
+test_w  <- dat_w[-idx_w, ]
+
+gbm_w <- gbm(
+  formula = price ~ aspiration + doornumber + carbody +
+    drivewheel + enginetype +
+    cylindernumber + fuelsystem + enginesize +
+    curbweight + horsepower +
+    carlength + carwidth + wheelbase + citympg,
+  data = train_w,
+  distribution = "gaussian",
+  n.trees = 1000,
+  interaction.depth = 3,
+  shrinkage = 0.01,
+  n.minobsinnode = 10,
+  cv.folds = 5,
+  verbose = FALSE
+)
+
+best_iter_w <- gbm.perf(gbm_w, method = "cv", plot.it = FALSE)
+
+gbm_pred_w <- predict(gbm_w, newdata = test_w,
+                      n.trees = best_iter_w)
+actual_w <- test_w$price
+
+ss_total_w <- sum((actual_w - mean(actual_w))^2)
+ss_res_w   <- sum((actual_w - gbm_pred_w)^2)
+r_squared_w_gbm <- 1 - ss_res_w / ss_total_w
+rmse_w_gbm <- sqrt(mean((actual_w - gbm_pred_w)^2))
+mae_w_gbm <- mean(abs(actual_w - gbm_pred_w))
+
+cat("GBM (with outliers) Test R²  =", r_squared_w_gbm,  "\n")
+cat("GBM (with outliers) Test RMSE=", rmse_w_gbm,"\n")
+cat("GBM (with outliers) Test MAE =", mae_w_gbm, "\n")
+
+plot_gbm_w <- data.frame(
+  Actual    = actual_w,
+  Predicted = gbm_pred_w
+)
+
+p_gbm_w <- ggplot(plot_gbm_w, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "darkgreen", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "GBM: Actual vs Predicted Price (With Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_gbm_w)
+
+ggsave("GBM_actual_vs_predicted_with_outliers.png",
+       p_gbm_w, width = 7, height = 5, dpi = 300)
+
+
+#KNN (K_N_Neighbours)
+
+
+
+set.seed(123)
+
+# ---------------------------
+# 1. Prepare data (no outliers)
+# ---------------------------
+dat <- dataset_no_outliers
+
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+
+dat[cat_vars] <- lapply(dat[cat_vars], factor)
+
+# formula (same structure as other models)
+form_knn <- price ~ aspiration + doornumber + carbody +
+  drivewheel + enginetype +
+  cylindernumber + fuelsystem + enginesize +
+  curbweight + horsepower +
+  carlength + carwidth + wheelbase + citympg
+
+# caret will one‑hot encode factors and scale numerics
+ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 3)
+
+set.seed(123)
+knn_fit <- train(
+  form_knn,
+  data = dat,
+  method = "knn",
+  trControl = ctrl,
+  preProcess = c("center", "scale"),   # very important for KNN
+  tuneLength = 10                      # tries several k values
+)
+
+knn_fit   # shows best k and CV RMSE
+
+# ---------------------------
+# 2. Train/test split for external evaluation
+# ---------------------------
+n  <- nrow(dat)
+train_size <- floor(0.8 * n)
+idx <- sample(seq_len(n), size = train_size)
+
+train_knn <- dat[idx, ]
+test_knn  <- dat[-idx, ]
+
+# refit on training only with best k
+set.seed(123)
+knn_final <- train(
+  form_knn,
+  data = train_knn,
+  method = "knn",
+  trControl = trainControl(method = "none"),
+  preProcess = c("center", "scale"),
+  tuneGrid = data.frame(k = knn_fit$bestTune$k)
+)
+
+# ---------------------------
+# 3. Predict & metrics
+# ---------------------------
+pred_knn <- predict(knn_final, newdata = test_knn)
+actual   <- test_knn$price
+
+ss_total <- sum((actual - mean(actual))^2)
+ss_res   <- sum((actual - pred_knn)^2)
+r_squared_no_knn <- 1 - ss_res / ss_total
+rmse_no_knn <- sqrt(mean((actual - pred_knn)^2))
+mae_no_knn  <- mean(abs(actual - pred_knn))
+
+cat("KNN (no outliers) Test R²  =", r_squared_no_knn, "\n")
+cat("KNN (no outliers) Test RMSE=", rmse_no_knn, "\n")
+cat("KNN (no outliers) Test MAE =", mae_no_knn,  "\n")
+
+# ---------------------------
+# 4. Graph: Actual vs Predicted
+# ---------------------------
+plot_knn <- data.frame(
+  Actual    = actual,
+  Predicted = pred_knn
+)
+
+p_knn <- ggplot(plot_knn, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "dodgerblue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "KNN Regression: Actual vs Predicted Price (No Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_knn)
+
+ggsave(
+  filename = "KNN_actual_vs_predicted_no_outliers.png",
+  plot     = p_knn,
+  width    = 7,
+  height   = 5,
+  dpi      = 300
+)
+
+
+set.seed(123)
+
+# ---------------------------
+# 1. Prepare data (WITH outliers)
+# ---------------------------
+dat_w <- data   # or df, your full dataset
+
+cat_vars <- c("aspiration","doornumber","carbody",
+              "drivewheel","enginetype",
+              "cylindernumber","fuelsystem")
+
+dat_w[cat_vars] <- lapply(dat_w[cat_vars], factor)
+
+form_knn_w <- price ~ aspiration + doornumber + carbody +
+  drivewheel + enginetype +
+  cylindernumber + fuelsystem + enginesize +
+  curbweight + horsepower +
+  carlength + carwidth + wheelbase + citympg
+
+ctrl <- trainControl(method = "repeatedcv", number = 5, repeats = 3)
+
+set.seed(123)
+knn_fit_w <- train(
+  form_knn_w,
+  data = dat_w,
+  method = "knn",
+  trControl = ctrl,
+  preProcess = c("center", "scale"),
+  tuneLength = 10
+)
+
+knn_fit_w   # shows best k, CV RMSE
+
+# ---------------------------
+# 2. Train/test split (80/20)
+# ---------------------------
+n_w  <- nrow(dat_w)
+train_size_w <- floor(0.8 * n_w)
+idx_w <- sample(seq_len(n_w), size = train_size_w)
+
+train_knn_w <- dat_w[idx_w, ]
+test_knn_w  <- dat_w[-idx_w, ]
+
+# refit on training only with best k
+set.seed(123)
+knn_final_w <- train(
+  form_knn_w,
+  data = train_knn_w,
+  method = "knn",
+  trControl = trainControl(method = "none"),
+  preProcess = c("center", "scale"),
+  tuneGrid = data.frame(k = knn_fit_w$bestTune$k)
+)
+
+# ---------------------------
+# 3. Predict & metrics
+# ---------------------------
+pred_knn_w <- predict(knn_final_w, newdata = test_knn_w)
+actual_w   <- test_knn_w$price
+
+ss_total_w <- sum((actual_w - mean(actual_w))^2)
+ss_res_w   <- sum((actual_w - pred_knn_w)^2)
+r_squared_w_knn <- 1 - ss_res_w / ss_total_w
+rmse_w_knn <- sqrt(mean((actual_w - pred_knn_w)^2))
+mae_w_knn <- mean(abs(actual_w - pred_knn_w))
+
+cat("KNN (with outliers) Test R²  =", r_squared_w_knn, "\n")
+cat("KNN (with outliers) Test RMSE=", rmse_w_knn, "\n")
+cat("KNN (with outliers) Test MAE =", mae_w_knn,  "\n")
+
+# ---------------------------
+# 4. Graph: Actual vs Predicted
+# ---------------------------
+plot_knn_w <- data.frame(
+  Actual    = actual_w,
+  Predicted = pred_knn_w
+)
+
+p_knn_w <- ggplot(plot_knn_w, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "darkturquoise", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0,
+              color = "red", linetype = "dashed") +
+  theme_minimal(base_size = 11) +
+  labs(
+    title = "KNN Regression: Actual vs Predicted Price (With Outliers)",
+    x = "Actual Price",
+    y = "Predicted Price"
+  )
+
+print(p_knn_w)
+
+ggsave(
+  filename = "KNN_actual_vs_predicted_with_outliers.png",
+  plot     = p_knn_w,
+  width    = 7,
+  height   = 5,
+  dpi      = 300
+)
+
+
+#Comparison 
+
+# ============================
+# 1. Metrics WITHOUT outliers
+# ============================
+
+results_without_outliers <- data.frame(
+  Model = c("Linear Regression",
+            "Random Forest",
+            "SVR",
+            "Lasso",
+            "Ridge",
+            "Decision Tree",
+            "GBM",
+            "KNN"),
+  R2   = c(r_squared_df,    # from your lm_without
+           r_squared_no,    # rf_without
+           r_squared_no_svr,   # svm without outliers
+           r_squared_no_lasso, # lasso without outliers
+           r2_no_ridge,        # ridge_no
+           r2_no_d,              # decision tree no outliers
+           r2_no_gbm,          # gbm_no
+           r_squared_no_knn),  # knn (no outliers)
+  RMSE = c(rmse_df,
+           rmse_no,
+           rmse_no_svr,
+           rmse_no_lasso,
+           rmse_no_ridge,
+           rmse_no_d,
+           rmse_no_gbm,
+           rmse_no_knn),
+  MAE  = c(mae_df,
+           mae_no,
+           mae_no_svr,
+           mae_no_lasso,
+           mae_no_ridge,
+           mae_no_d,
+           mae_no_gbm,
+           mae_no_knn)
+)
+
+results_without_outliers
+
+
+# ============================
+# 2. Metrics WITH outliers
+# ============================
+
+results_with <- data.frame(
+  Model = c("Linear Regression",
+            "Random Forest",
+            "SVR",
+            "Lasso",
+            "Ridge",
+            "Decision Tree",
+            "GBM",
+            "KNN"),
+  R2   = c(r_squared,          # lm_with
+           r_squared_w,     # rf_with
+           r_squared_w_svr,    # svm_with
+           r_squared_w_lasso,  # lasso_with
+           r2_w_ridge,         # ridge_w
+           r2_w_d,               # decision tree with outliers
+           r_squared_w_gbm,           # gbm_w
+           r_squared_w_knn),   # knn with outliers
+  RMSE = c(rmse,
+           rmse_w,
+           rmse_w_svr,
+           rmse_w_lasso,
+           rmse_w_ridge,
+           rmse_w_d,
+           rmse_w_gbm,
+           rmse_w_knn),
+  MAE  = c(mae,
+           mae_w,
+           mae_w_svr,
+           mae_w_lasso,
+           mae_w_ridge,
+           mae_w_d,
+           mae_w_gbm,
+           mae_w_knn)
+)
+
+results_with
 
 
 
