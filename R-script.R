@@ -9,6 +9,7 @@ library(stringr)
 library(corrplot)
 library(tidyr)
 library(GGally)
+library(reshape2) 
 library(randomForest)
 library(xgboost)
 library(glmnet)
@@ -256,8 +257,6 @@ ggsave(
 
 # Plot heatmap
 
-library(reshape2) 
-
 
 
 #  Convert correlation matrix to long format
@@ -289,16 +288,16 @@ ggsave(
 
 #Outlier_eradicating
 
-# Remove 'car_ID', 'symboling', and 'carName' (adjust variable names as in your data)
+# Remove 'car_ID', 'symboling', and 'carName' 
 remove_vars <- c("car_ID", "symboling", "carName")
 cols_to_remove <- names(df)[tolower(names(df)) %in% tolower(remove_vars)]
 df_removed <- df[ , !names(df) %in% cols_to_remove]
 
-# Assume df_removed is your dataframe with car_ID, symboling, carName already removed
+
 
 df_no_outliers <- df_removed
 
-# Remove rows with outliers for each numeric variable (IQR method)
+# Removing rows with outliers for each numeric variable (IQR method)
 for(col in names(df_no_outliers)[sapply(df_no_outliers, is.numeric)]) {
   Q1 <- quantile(df_no_outliers[[col]], 0.25, na.rm=TRUE)
   Q3 <- quantile(df_no_outliers[[col]], 0.75, na.rm=TRUE)
@@ -325,23 +324,17 @@ summary(dataset_no_outliers)
 # For df dataset (WITH outliers)
 # Use the SAME variables and structure, only dataset changes
 cat_var <- c("aspiration","doornumber","carbody",
-              "drivewheel","enginetype",
-              "cylindernumber","fuelsystem")
+             "drivewheel","enginetype",
+             "cylindernumber","fuelsystem")
 
 # For df (with outliers)
 data[cat_var] <- lapply(df[cat_var], factor)
 
-
-# Now check levels again
-sapply(data[cat_var], nlevels)
-
-# 1. Check factor structure if needed
 sapply(data[cat_var], nlevels)
 lapply(data[cat_var], levels)
 
 set.seed(123)  # same seed pattern
 
-# 2. Get total number of rows
 n_df <- nrow(data)
 
 # 3. 80% of rows for training
@@ -382,7 +375,7 @@ cat("DF (with outliers) Test RMSE=", rmse_df, "\n")
 cat("DF (with outliers) Test MAE =", mae_df,  "\n")
 
 
-# and we already predicted on test_data_df earlier:
+
 pred_with   <- predict(lm_with, newdata = test_data_df)
 actual_with <- test_data_df$price
 
@@ -425,11 +418,11 @@ cat_vars <- c("aspiration","doornumber","carbody",
 
 set.seed(123) # Keeps your random split consistent
 
-# 1. Get total number of rows
+# 1.total number of rows
 n <- nrow(dataset_no_outliers)
 
-# 2. Calculate 80% of the rows for training
-# We use floor() to get a whole number
+# 2
+
 train_size <- floor(0.8 * n)
 
 # 3. Randomly sample indices
@@ -445,8 +438,8 @@ cat("Testing Set  (20%):", nrow(test_data), "rows\n")
 
 
 lm_without<- lm(price ~ aspiration + doornumber + carbody +
-                drivewheel + enginetype +
-                cylindernumber + fuelsystem + enginesize +
+                  drivewheel + enginetype +
+                  cylindernumber + fuelsystem + enginesize +
                   curbweight + horsepower +
                   carlength + carwidth + wheelbase + citympg,
                 data = train_data)
@@ -558,7 +551,7 @@ cat("RF (with outliers) Test MAE =", mae_w,  "\n")
 
 # variable importance
 
-# 1) Extract importance (for regression: IncNodePurity or %IncMSE)
+# 1) Extract importance 
 imp <- importance(rf_with)          # matrix
 imp_df <- as.data.frame(imp)
 imp_df$Variable <- rownames(imp_df)
@@ -589,7 +582,7 @@ ggsave("rf_variable_importance.png", p_imp,
 
 
 # =========================
-# WITHOUT OUTLIERS (dataset_no_outliers)
+# WITHOUT OUTLIERS
 # =========================
 
 cat_vars <- c("aspiration","doornumber","carbody",
@@ -642,10 +635,10 @@ imp_no_df <- as.data.frame(imp_no)
 imp_no_df$Variable <- rownames(imp_no)
 rownames(imp_no_df) <- NULL
 
-# Choose measure: IncNodePurity (regression default) or %IncMSE if available
+# IncNodePurity (regression default) 
 measure_no <- if ("IncNodePurity" %in% names(imp_no_df)) "IncNodePurity" else "%IncMSE"
 
-# Build ggplot variable-importance graph
+#variable-importance graph
 p_imp_no <- imp_no_df %>%
   arrange(.data[[measure_no]]) %>%
   mutate(Variable = factor(Variable, levels = Variable)) %>%
@@ -661,7 +654,7 @@ p_imp_no <- imp_no_df %>%
 
 print(p_imp_no)
 
-# Save as big high‑resolution image (optional)
+# Save as big high‑resolution image
 ggsave(
   filename = "rf_without_var_importance.png",
   plot     = p_imp_no,
@@ -762,8 +755,8 @@ set.seed(123)
 # WITH outliers
 # ================
 
-# use your full dataset with outliers; adjust name if needed
-df_with <- data    # or df, whichever you used above
+
+df_with <- data   
 
 cat_vars <- c("aspiration","doornumber","carbody",
               "drivewheel","enginetype",
@@ -957,7 +950,7 @@ set.seed(123)
 # -----------------------
 # 1. Prepare data (WITH outliers)
 # -----------------------
-dat_w <- data    # or df, whichever is your full dataset
+dat_w <- data    
 
 cat_vars <- c("aspiration","doornumber","carbody",
               "drivewheel","enginetype",
@@ -973,7 +966,7 @@ X_w <- model.matrix(
     curbweight + horsepower +
     carlength + carwidth + wheelbase + citympg,
   data = dat_w
-)[, -1]   # remove intercept column
+)[, -1]   
 
 y_w <- dat_w$price
 
@@ -1135,7 +1128,7 @@ ggsave(
 
 set.seed(123)
 
-dat_w <- data   # or df, your full dataset with outliers
+dat_w <- data  
 
 dat_w[cat_vars] <- lapply(dat_w[cat_vars], factor)
 
@@ -1278,7 +1271,7 @@ ggsave("DT_actual_vs_predicted_no_outliers.png",
 set.seed(123)
 
 # ----- data with outliers -----
-dat_w <- data   # or df, your full dataset
+dat_w <- data 
 
 dat_w[cat_vars] <- lapply(dat_w[cat_vars], factor)
 
@@ -1587,9 +1580,9 @@ ggsave(
 set.seed(123)
 
 # ---------------------------
-# 1. Prepare data (WITH outliers)
+# 1. (WITH outliers)
 # ---------------------------
-dat_w <- data   # or df, your full dataset
+dat_w <- data 
 
 cat_vars <- c("aspiration","doornumber","carbody",
               "drivewheel","enginetype",
@@ -1699,7 +1692,7 @@ results_without_outliers <- data.frame(
             "Decision Tree",
             "GBM",
             "KNN"),
-  R2   = c(r_squared_df,    # from your lm_without
+  R2   = c(r_squared_df,    
            r_squared_no,    # rf_without
            r_squared_no_svr,   # svm without outliers
            r_squared_no_lasso, # lasso without outliers
